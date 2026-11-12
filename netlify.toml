@@ -1,0 +1,15 @@
+# Static hosting of the main dashboard. Netlify serves site/ as-is; there is no build
+# step because the page is generated locally by ./refresh.sh and copied in by
+# deploy/publish-site.sh (the warehouse and Foundry credentials never leave this machine).
+[build]
+  publish = "site"
+
+# The page contains complaint text and usage data. Keep it out of search engines even
+# though it is reachable by anyone with the URL.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "public, max-age=0, must-revalidate"
