@@ -1,0 +1,39 @@
+# Data warehouse — 400+MB and contains real customer/tenant data.
+# Lives here for local refreshes; never belongs in git.
+foundry_analytics.db
+
+# Operational logs and run-state — local machine noise, not source.
+logs/
+state/
+*.log
+
+# Real customer complaint text and reviewer names — sensitive, not for source control.
+feedback-briefs/
+
+# Demo video/audio generator — large rendered media, not part of the dashboard.
+demo/
+
+# Python / Node build artifacts.
+__pycache__/
+*.pyc
+node_modules/
+
+# Editor / OS noise and stray backups.
+.DS_Store
+*.bak-*
+
+# Deployment packages.
+dist/
+
+# Foundry API credentials — never commit.
+foundry.local.md
+.env.local
+
+# SQLite sidecar files and the refresh lock.
+foundry_analytics.db-shm
+foundry_analytics.db-wal
+.refresh.lock
+
+# Generated dashboards embed tenant usage, cost and feedback data. Regenerate with ./refresh.sh.
+dashboard.html
+dashboard-forge.html

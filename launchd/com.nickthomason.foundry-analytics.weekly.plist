@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nickthomason.foundry-analytics.weekly</string>
+
+  <!-- Full reconciliation: the 428-definition workflow fan-out plus full-history
+       feedback discovery and the default 14-day transcript re-fetch. This is what
+       catches a late rating on a conversation older than the nightly 3-day window,
+       and any new visual-workflow executions. Expect several minutes. -->
+  <!-- Routed through refresh-scheduled.sh for the same retry/backoff the nightly gets,
+       but the lock is the bigger reason: weekly fires Friday 12:45 while the 12:15
+       nightly is usually still running (measured 38-48 min), so before 2026-08-20 two
+       writers hit the same SQLite warehouse every Friday. The wrapper makes weekly wait
+       for nightly to finish instead. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__INSTALL_DIR__/refresh-scheduled.sh</string>
+    <string>weekly</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__INSTALL_DIR__</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- Friday 12:45, moved off Sunday 04:00 on 2026-08-11 for the same reason the
+       nightly agent left 03:15: a job scheduled while the Mac sleeps on battery is
+       suspended between ~2s DarkWakes and does not really run until the lid opens.
+       See the nightly plist for the measured case. 30 minutes after the 12:15 daily
+       slot, which finishes in ~2.5 min, so the two never share the SQLite even if the
+       daily one runs long. Weekday 5 is Friday (0 and 7 both mean Sunday). -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>5</integer>
+    <key>Hour</key><integer>12</integer>
+    <key>Minute</key><integer>45</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__INSTALL_DIR__/logs/launchd-weekly.out</string>
+  <key>StandardErrorPath</key>
+  <string>__INSTALL_DIR__/logs/launchd-weekly.err</string>
+
+  <key>ExitTimeOut</key>
+  <integer>120</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+</dict>
+</plist>

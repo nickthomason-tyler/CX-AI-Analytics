@@ -1,0 +1,6 @@
+{
+  "id": "fb3d86f9-611b-4175-8c89-0704ba1ade68",
+  "name": "Feedback Failure Classifier",
+  "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "project_id": "80d8fc6a-4294-41de-b272-8f2a762b1f4d"
+}

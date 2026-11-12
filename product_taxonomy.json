@@ -1,0 +1,443 @@
+{
+  "_source": "Tyler Product Architecture Guide (Marketing DAM > Branding Assets > Branding Elements - Corporate > Tyler Product Architecture Guide.pdf). Hierarchy: portfolio > application suite > application > module > feature. This file maps Foundry projects/agents onto the *application* level.",
+  "_howto": [
+    "`rules` are evaluated in order; FIRST match wins. Each rule assigns a `product`;",
+    "the portfolio is looked up from `portfolios` below, so the two can never disagree.",
+    "Anything unmatched lands in `default`. After editing, run:  python3 extract.py retag",
+    "(no API calls, takes seconds). Then check the Unattributed bucket and add rules.",
+    "",
+    "Rule match fields (all optional, ANDed):",
+    "  project_ids    exact Foundry project id list  -- most precise, prefer this",
+    "  project_regex  regex vs project name",
+    "  agent_regex    regex vs agent name  -- catches product agents in personal sandboxes",
+    "  tenant_regex   regex vs tenant name",
+    "",
+    "Products named in `focus_products` get is_focus=1, which is how the dashboard",
+    "defaults to 'my strategy scope' vs everything else."
+  ],
+  "portfolios": {
+    "Civic": [
+      "Asset Management",
+      "Pro Digital Titling",
+      "Enterprise Asset Management",
+      "Enterprise Environmental Health",
+      "Enterprise Permitting & Licensing",
+      "Enterprise Service Requests",
+      "Motor Vehicle & Driver Services",
+      "Parks & Rec Permitting & Licensing Pro"
+    ],
+    "ERP": [
+      "ACFR Statement Builder",
+      "AP Automation",
+      "Enterprise ERP",
+      "Enterprise Forms",
+      "ERP Pro",
+      "Hub",
+      "New World ERP",
+      "Notify",
+      "Priority Based Budgeting",
+      "Time & Attendance"
+    ],
+    "Health & Human Services": [
+      "Disability & Benefits",
+      "Enterprise Environmental Health"
+    ],
+    "Justice": [
+      "CertiFile",
+      "CloudGavel",
+      "Court Analytics",
+      "Document Automation",
+      "Enterprise Corrections",
+      "Enterprise Jury Manager",
+      "Enterprise Justice",
+      "Enterprise Supervision",
+      "Municipal Justice",
+      "Virtual Court"
+    ],
+    "Outdoor Recreation": [
+      "Parks & Rec",
+      "Recreation Management",
+      "Recreational Licensing"
+    ],
+    "Property & Recording": [
+      "Appraisal",
+      "Assessment & Tax Plus",
+      "Assessment & Tax Pro",
+      "CA Valuation",
+      "Document Pro",
+      "Enterprise Assessment & Tax",
+      "Enterprise Records Management",
+      "SmartFile",
+      "Tax-Wise"
+    ],
+    "Public Safety": [
+      "Civil Process",
+      "Enforcement Mobile",
+      "Enterprise Public Safety",
+      "Public Safety Analytics",
+      "Public Safety Pro"
+    ],
+    "Regulatory": [
+      "Cannabis Licensing",
+      "State Regulatory Platform"
+    ],
+    "Schools": [
+      "Absence & Substitute",
+      "My Sub",
+      "K-12 Onboard",
+      "iPaaS",
+      "School ERP Pro",
+      "SISFin",
+      "Student Transportation",
+      "Telematic GPS",
+      "Tyler Drive",
+      "Versatrans"
+    ],
+    "Tyler One": [
+      "Application Platform",
+      "Appointment Scheduling",
+      "Augmented Field Operations",
+      "Cashiering",
+      "Content Manager",
+      "Court Funds",
+      "Data & Insights",
+      "Disbursements",
+      "Engagement Builder",
+      "Gov2Go",
+      "Identity",
+      "Incident Status",
+      "Insurance Solutions",
+      "Managed Detection & Response",
+      "Meeting Manager",
+      "My Civic",
+      "Payments",
+      "Release Pay",
+      "Resident AI Assistant"
+    ],
+    "Non-Product": [
+      "Internal Sandbox",
+      "Platform Engineering / Internal Tooling",
+      "Unattributed"
+    ]
+  },
+  "focus_products": [
+    "Enterprise Permitting & Licensing",
+    "Enterprise Service Requests",
+    "Enterprise Asset Management",
+    "Enterprise Environmental Health",
+    "State Regulatory Platform",
+    "Cannabis Licensing",
+    "Application Platform",
+    "Payments",
+    "Resident AI Assistant",
+    "Appointment Scheduling",
+    "Engagement Builder",
+    "Data & Insights",
+    "Identity"
+  ],
+  "rules": [
+    {
+      "_": "MUST STAY FIRST. This warehouse's own tooling agents (label_feedback.py calls them) live in a personal sandbox project, so the EPL project_ids rule below would otherwise claim them and their batch volume would be reported as EPL adoption. The classifier alone logged 1,044 runs in one labelling pass on 2026-08-06, which inflated EPL's 28-day growth from +208% to +433%. Rule 55 already covers internal harness agents but sits after the product rules, and first match wins.",
+      "product": "Platform Engineering / Internal Tooling",
+      "agent_regex": "^Feedback (Failure Classifier|Synthesis Analyst)$"
+    },
+    {
+      "_": "MUST STAY AHEAD OF THE EPL project_ids RULE. Same failure mode as the rule above it: a resident-branded assistant built in someone's personal project inherits whatever product owns that project, and several personal projects are in EPL's project_ids list. 'Raleigh NC Website Assistant' in a personal sandbox project was reported as EPL for exactly this reason, while the same agent in the Raleigh NC tenant was correctly Resident AI Assistant. ANDs the agent name with a personal-project shape so it only reaches into scratch space, never into a real product's project.",
+      "product": "Resident AI Assistant",
+      "agent_regex": "Website Assistant|Resident (?:AI )?Assistant",
+      "project_regex": "- (?:project|projects)$|- Projects\\b"
+    },
+    {
+      "_": "MUST STAY AHEAD OF THE ERP FALLBACK BLOCK AT THE END OF THIS FILE. 'Staff Assistant' is a bare name the ERP side uses in 17 deployments, and the fallback there sends it to Enterprise ERP; Union City HI CC is the one instance that is NOT ERP. Its questions are service requests ('how many service requests are in the New status', 'summarize the details of request number 206') plus some work-order traffic that arguably belongs to Enterprise Asset Management; assigned to ESR (confirmed 2026-08-10). Note ESR is in focus_products, so this moves 162 runs into focus scope. Needs dim_agent.tenant_name populated -- this agent has no project, so without it the rule cannot fire on a retag.",
+      "product": "Enterprise Service Requests",
+      "agent_regex": "^Staff Assistant$",
+      "tenant_regex": "^Union City HI"
+    },
+    {
+      "_": "EPL — explicit project ids. Add your tenant's project ids here, verified against /foundry/v1/projects. Name- and regex-based rules below cover EPL until you do.",
+      "product": "Enterprise Permitting & Licensing",
+      "project_ids": []
+    },
+    {
+      "_": "Cannabis Licensing is its own Regulatory product, not EPL — check before the EPL regexes",
+      "product": "Cannabis Licensing",
+      "project_regex": "Cannabis"
+    },
+    {
+      "product": "Cannabis Licensing",
+      "agent_regex": "Cannabis"
+    },
+    {
+      "product": "State Regulatory Platform",
+      "project_regex": "State Regulatory|\\bSRP\\b"
+    },
+    {
+      "_": "ESR before EPL: 'ESR and EPL Orchestrator' is a Service Requests artifact",
+      "product": "Enterprise Service Requests",
+      "project_regex": "Enterprise Service Request|\\bESR\\b"
+    },
+    {
+      "product": "Enterprise Service Requests",
+      "agent_regex": "\\bESR\\b|Service Request"
+    },
+    {
+      "product": "Enterprise Permitting & Licensing",
+      "project_regex": "\\bEPL\\b|Permitting|Preapplication|Pre-application"
+    },
+    {
+      "_": "Catches EPL agents living inside individuals' personal projects",
+      "product": "Enterprise Permitting & Licensing",
+      "agent_regex": "\\bEPL\\b|Permit|Plan Review|Preapplication|Pre-application|Staff Report|Completeness"
+    },
+    {
+      "product": "Enterprise Environmental Health",
+      "project_regex": "Environmental Health|\\bEEH\\b"
+    },
+    {
+      "_": "EAM rolls up to Enterprise ERP (confirmed 2026-08-10). Enterprise Asset Management remains a real product in the portfolio table below, but no traffic is mapped to it -- the four agents in the 'EAM Project' project (160 runs) now report as Enterprise ERP. Flip this product string back to 'Enterprise Asset Management' to undo; it is a one-word change and needs no re-extraction.",
+      "product": "Enterprise ERP",
+      "project_regex": "Asset Management|\\bEAM\\b"
+    },
+    {
+      "product": "Motor Vehicle & Driver Services",
+      "project_regex": "Motor Vehicle|Driver Services|\\bMVDS\\b|Digital Titling|\\bDMV\\b"
+    },
+    {
+      "product": "Motor Vehicle & Driver Services",
+      "agent_regex": "\\bDMV\\b"
+    },
+    {
+      "_": "School ERP Pro first: 'SEPro' agents would otherwise be caught by ERP Pro",
+      "product": "School ERP Pro",
+      "project_regex": "School ERP|\\bSEPRO\\b|\\bSEPro\\b"
+    },
+    {
+      "product": "School ERP Pro",
+      "tenant_regex": "SEPRO"
+    },
+    {
+      "product": "School ERP Pro",
+      "agent_regex": "\\bSEPro\\b|\\bSEPRO\\b|School ERP"
+    },
+    {
+      "product": "Enterprise ERP",
+      "project_regex": "\\bEERP\\b|Enterprise ERP|\\bMunis\\b|Utility Billing"
+    },
+    {
+      "product": "Enterprise ERP",
+      "tenant_regex": "Enterprise ERP"
+    },
+    {
+      "_": "EERP-named agents scattered across unowned projects (Smart Pulse, etc.)",
+      "product": "Enterprise ERP",
+      "agent_regex": "\\bEERP\\b|\\bMunis\\b|Utility Billing"
+    },
+    {
+      "product": "New World ERP",
+      "project_regex": "New World"
+    },
+    {
+      "product": "Notify",
+      "project_regex": "\\bNotify\\b"
+    },
+    {
+      "product": "Enterprise Forms",
+      "project_regex": "Enterprise Forms"
+    },
+    {
+      "product": "Time & Attendance",
+      "project_regex": "Time & Attendance|Time and Attendance"
+    },
+    {
+      "product": "Hub",
+      "project_regex": "Tyler Hub|\\bHub\\b"
+    },
+    {
+      "product": "Hub",
+      "agent_regex": "Hub Staff Assistant|Hub Assistant"
+    },
+    {
+      "product": "ERP Pro",
+      "project_regex": "ERP Pro"
+    },
+    {
+      "product": "ERP Pro",
+      "agent_regex": "ERP Pro"
+    },
+    {
+      "product": "Absence & Substitute",
+      "project_regex": "Absence|Absense|Substitute|\\bSubs\\b"
+    },
+    {
+      "product": "Absence & Substitute",
+      "agent_regex": "Absence and Subs|Absense and Subs"
+    },
+    {
+      "product": "Student Transportation",
+      "project_regex": "Versatrans|Student Transport|Telematic"
+    },
+    {
+      "product": "K-12 Onboard",
+      "project_regex": "K-12|K12 Onboard"
+    },
+    {
+      "product": "Enterprise Public Safety",
+      "project_regex": "Public Safety|Fire and EMS|Fire & EMS|\\bALEA\\b|Law Enforcement|Dispatch|\\bCAD\\b"
+    },
+    {
+      "product": "Enterprise Public Safety",
+      "agent_regex": "\\bALEA\\b|Law Enforcement|Incident"
+    },
+    {
+      "product": "Enforcement Mobile",
+      "project_regex": "Enforcement Mobile"
+    },
+    {
+      "product": "Civil Process",
+      "project_regex": "Civil Process"
+    },
+    {
+      "product": "Enterprise Assessment & Tax",
+      "project_regex": "Assessment & Tax|Assessment and Tax|\\bA&T\\b|\\bEA&T\\b|Appraisal|Property Record|\\bCAMA\\b"
+    },
+    {
+      "product": "Enterprise Assessment & Tax",
+      "project_regex": "^AT-PA$|Property Access"
+    },
+    {
+      "product": "Enterprise Assessment & Tax",
+      "agent_regex": "\\bA&T\\b|\\bA&S\\b|Property Record|Property Access|Appraisal"
+    },
+    {
+      "product": "Enterprise Records Management",
+      "project_regex": "Records Management|\\bERM\\b|Recording"
+    },
+    {
+      "product": "Tax-Wise",
+      "project_regex": "Tax-Wise|TaxWise"
+    },
+    {
+      "product": "Enterprise Supervision",
+      "project_regex": "Community Supervision|Enterprise Supervision|Probation"
+    },
+    {
+      "product": "Enterprise Justice",
+      "project_regex": "Enterprise Justice|Odyssey|\\bCourts?\\b|Justice"
+    },
+    {
+      "product": "Enterprise Corrections",
+      "project_regex": "Corrections|\\bJail\\b"
+    },
+    {
+      "product": "Municipal Justice",
+      "project_regex": "Municipal Justice|\\bMuni Court"
+    },
+    {
+      "product": "Resident AI Assistant",
+      "project_regex": "Resident AI|Resident Assistant|\\bMy Civic\\b"
+    },
+    {
+      "_": "State/city-branded resident-facing portals are Resident AI Assistant deployments",
+      "product": "Resident AI Assistant",
+      "project_regex": "Portal Assistant|Ask the |Ask Dirigo|\\bDORA\\b|all assistants"
+    },
+    {
+      "_": "City-branded chat assistants are Resident AI Assistant deployments. 'Resident (?:AI )?Assistant' rather than 'Resident Assistant': the product's own name has an AI in it, so the agent literally called 'Resident AI Assistant' used to miss this rule and sit Unattributed for 315 runs. Named cities are here because a city-prefixed 'X Assistant' cannot be pattern-matched generically -- ADD NEW CITIES HERE as they ship (Doral and Fort Collins (confirmed 2026-08-10)).",
+      "product": "Resident AI Assistant",
+      "agent_regex": "Resident (?:AI )?Assistant|City Assistant|Website Assistant|Portal Assistant|Chatbot|Chabot|Public Text Agent|Ask Dirigo|\\bDORA\\b|^Doral Assistant|^Fort Collins Assistant"
+    },
+    {
+      "product": "Data & Insights",
+      "project_regex": "Data & Insights|Socrata|\\bDCAT\\b"
+    },
+    {
+      "product": "Payments",
+      "project_regex": "\\bPayments?\\b|Cashiering"
+    },
+    {
+      "product": "Identity",
+      "project_regex": "\\bIdentity\\b|\\bSSO\\b|Authentication"
+    },
+    {
+      "product": "Appointment Scheduling",
+      "project_regex": "Appointment"
+    },
+    {
+      "product": "Engagement Builder",
+      "project_regex": "Engagement Builder"
+    },
+    {
+      "product": "Content Manager",
+      "project_regex": "Content Manager"
+    },
+    {
+      "product": "Meeting Manager",
+      "project_regex": "Meeting Manager"
+    },
+    {
+      "product": "Gov2Go",
+      "project_regex": "Gov2Go"
+    },
+    {
+      "_": "Foundry-platform and internal-enablement work — real, but not a shippable product",
+      "product": "Platform Engineering / Internal Tooling",
+      "project_regex": "Load Test|Foundry Core|\\bEDAI\\b|AI Solutions|Deep Search|\\bMCP\\b|Application Platform|SSRS|Migration POC|Deploy Health|Support Agent|Case Quality|Version Directory|\\bKARP\\b|Chatbot Eval|\\bBPMM\\b|Hackathon|Highlight Reel"
+    },
+    {
+      "_": "Internal test/eval/harness agents identifiable by name alone",
+      "product": "Platform Engineering / Internal Tooling",
+      "agent_regex": "Foundry Assistant|Latest Version Search|Claude Testing|Workflow Agent Test|\\bBPMM\\b|^Test |Testing Agent|Eval Agent"
+    },
+    {
+      "_": "LAST: individually-owned scratch space. Broad on purpose.",
+      "product": "Internal Sandbox",
+      "project_regex": "(?:^|\\s)-\\s*(?:project|projects|foundry|sandbox|draft)|(?:project|projects|sandbox|scratch|playground)\\s*$|'s\\s|\\bmy\\b|Private|Draft Projects|^Test|Test Project|Demo-?Project|^[A-Z]{2,6}-\\d+:|POC$|^POC\\b|Tester$|^[A-Z][a-z]+ [A-Z][a-z']+(?: [A-Z][a-z]+\\.?)? - |^[A-Z][a-z]+ [A-Z][a-z']+ v\\d|-demo$|^[A-Z][a-z]+$"
+    },
+    {
+      "_": "── ERP name-only fallbacks, deliberately AFTER every project/tenant rule ──────  These exist because the ERP side ships agents under bare, unprefixed names, so a copy of an ERP agent dropped into a demo or preview tenant loses its project link and has nothing left to identify it. Sitting last means they can ONLY claim agents that no project, tenant or other product rule wanted -- i.e. exactly the Unattributed pile -- so adding them cannot re-home anything already attributed (notably the many ERP agents legitimately sitting in Internal Sandbox personal projects). Each pattern below is justified by a sibling of the SAME agent name that IS attributed via a project called 'Enterprise ERP', not by guessing from the name.",
+      "product": "Enterprise ERP",
+      "agent_regex": "^Staff Assistant$"
+    },
+    {
+      "_": "The 'Staff Assistant' evidence, since it is the name that burned us: the City of AI, ME instance has 92 feedback turns with 48 finance + 22 HR keyword hits against 1 EPL hit, one user citing 'the Munis screen'; Town of Tyler - Test has 40 finance hits (purchase-order permissions, accrual tables); ERP ECD Demo asks for requisitions and AR batch status. Every bare 'Staff Assistant' examined is ERP-family -- the EPL team prefixes theirs, which is what makes the anchored pattern on the rule above safe. The ONE exception is Union City HI CC (service-request traffic), caught by the Enterprise Service Requests rule near the top of this file; that rule MUST stay ahead of this block. This rule itself catches the explicitly-named 'Enterprise ERP <thing>' agents that only a project rule used to reach: Payroll Document Architect (Imported), Standard Document Architect - Formatter (Imported), Support Case Quality Review Agent.",
+      "product": "Enterprise ERP",
+      "agent_regex": "^Enterprise ERP\\b"
+    },
+    {
+      "_": "Rule 20's own comment already names 'Smart Pulse' as an EERP agent scattered across unowned projects, but its regex never actually included it, so 509 runs sat Unattributed.",
+      "product": "Enterprise ERP",
+      "agent_regex": "SmartPulse|Smart Pulse"
+    },
+    {
+      "_": "Sibling 'User Administration Inquiry Assistant' is attributed via the project 'Enterprise ERP'. Covers the Agent/Assistant/(Copy2)/(Imported)/V3 variants.",
+      "product": "Enterprise ERP",
+      "agent_regex": "User Administration Inquiry"
+    },
+    {
+      "_": "Sibling 'Report Assistant' is attributed via the project 'Enterprise ERP'; its City of AI, ME instance asks about employee federal deductions. Anchored so it cannot swallow other products' report agents.",
+      "product": "Enterprise ERP",
+      "agent_regex": "^Report Assistant$"
+    },
+    {
+      "_": "Accounts receivable is Enterprise ERP financials; sibling 'Accounts Receivable Assistant' is attributed via the project 'Enterprise ERP'.",
+      "product": "Enterprise ERP",
+      "agent_regex": "Accounts Receivable|AR Customers"
+    },
+    {
+      "_": "Sibling 'Recruiting Assistant' is attributed via the project 'Enterprise ERP' (HR/talent).",
+      "product": "Enterprise ERP",
+      "agent_regex": "^Recruiting (Assistant|Agent)$"
+    },
+    {
+      "_": "'Pro10' is ERP Pro 10 -- the family covers Invoice, Purchase Orders, Grants, Inventory and Payroll agents, all ERP Pro modules. NOTE: most Pro10 agents live in personal projects and are therefore Internal Sandbox; this only picks up the ones with no project at all, so the family is split across two products by design. Revisit if you want ERP Pro to claim the whole family.",
+      "product": "ERP Pro",
+      "agent_regex": "\\bPro[ -]?10\\b"
+    },
+    {
+      "_": "EAM-named agents with no project to place them (EAM rolls up to Enterprise ERP (confirmed 2026-08-10)). Deliberately down here with the other name-only fallbacks rather than next to the 'EAM Project' rule: placed early it also pulled 803 runs of EAM development out of Internal Sandbox, which would have treated EAM's scratch work differently from Enterprise ERP's own (Payroll Document Architect et al. stay in Internal Sandbox when they live in a personal project). Down here it only claims agents nothing else wanted.",
+      "product": "Enterprise ERP",
+      "agent_regex": "^EAM\\b"
+    }
+  ],
+  "default_product": "Unattributed"
+}

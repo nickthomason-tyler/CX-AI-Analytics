@@ -1,0 +1,19 @@
+{
+  "name": "foundry-analytics",
+  "version": "1.0.0",
+  "description": "Pulls Foundry execution logs into a local SQLite warehouse so adoption, cost, and reliability can be sliced by **Tyler portfolio and product** — a dimension Foundry itself does not have.",
+  "main": "verify_dashboard.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tylertech/forge": "^3.16.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

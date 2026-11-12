@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nickthomason.foundry-analytics.nightly</string>
+
+  <!-- Cheap top-up: ~2 min. Skips the 428-request workflow fan-out and uses a
+       3-day transcript re-fetch window. The weekly agent sweeps what this misses. -->
+  <!-- Goes through refresh-scheduled.sh, not refresh.sh directly. The wrapper waits
+       for the API host to be reachable, retries a failed run with backoff, holds a
+       lock so two refreshes never touch the SQLite warehouse at once, and stamps a
+       success so a second slot the same day is a no-op. Added 2026-08-20 after the
+       08-19 run died on DNS resolution (no network at 12:15) and left the dashboards
+       two days stale on a single failed attempt. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__INSTALL_DIR__/refresh-scheduled.sh</string>
+    <string>nightly</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__INSTALL_DIR__</string>
+
+  <!-- launchd gives a job a minimal PATH. /usr/local/bin first so this uses the same
+       python3 (3.12.0) the refresh was verified against, not /usr/bin/python3.
+       Credentials are NOT needed here: foundry_client.py reads them from
+       ~/.config/foundry/foundry.local.md by absolute path. (They had to leave OneDrive
+       for the same TCC reason the warehouse did -- an earlier comment here pointed at
+       tyler-ai/plugins/foundry/, which a launchd job cannot read.) -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- 12:15 daily, moved off 03:15 on 2026-08-11. launchd does run a job missed while
+       asleep, so 03:15 never *skipped* — but on battery with the lid shut the Mac only
+       surfaces for ~2s DarkWakes, and the job is suspended between them. The 2026-08-11
+       03:15 run therefore burned 164 minutes of wall clock to do 71 seconds of work,
+       making real progress only when the lid opened at 06:04. A midday slot means the
+       machine is actually awake, so "nightly" now means "daily" -- the mode argument
+       above is refresh.sh's cheap-mode name, not a claim about the hour. -->
+  <!-- Two slots, not one. 12:15 is the real run; 19:15 is a free safety net, because
+       the wrapper's day-stamp makes it exit in a second when 12:15 already succeeded.
+       It only does work when the whole 12:15 attempt budget was spent without a
+       success -- e.g. the laptop had no network all afternoon, which is exactly the
+       08-19 failure. NOT KeepAlive/SuccessfulExit=false: with a calendar interval that
+       relaunches in a tight loop with no backoff and no network awareness, which
+       against a rate-limited API is worse than the failure it would be fixing. -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key><integer>12</integer>
+      <key>Minute</key><integer>15</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>19</integer>
+      <key>Minute</key><integer>15</integer>
+    </dict>
+  </array>
+
+  <!-- Never run on login/load: a refresh should be a scheduled event, not a
+       side effect of opening the laptop. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- refresh.sh tees its own timestamped log; these catch anything that escapes it,
+       such as a bash or launchd-level failure. -->
+  <key>StandardOutPath</key>
+  <string>__INSTALL_DIR__/logs/launchd-nightly.out</string>
+  <key>StandardErrorPath</key>
+  <string>__INSTALL_DIR__/logs/launchd-nightly.err</string>
+
+  <key>ExitTimeOut</key>
+  <integer>120</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+</dict>
+</plist>

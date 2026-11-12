@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nickthomason.foundry-analytics.serve</string>
+
+  <!-- Keeps http://localhost:8765/ up so the favorited dashboard URLs always resolve.
+       serve.py binds both loopback addresses and serves a six-file allowlist -- NOT the
+       warehouse directory, which holds foundry_analytics.db. Added 2026-08-20. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>__INSTALL_DIR__/serve.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__INSTALL_DIR__</string>
+
+  <!-- Unlike the refresh agents, this one SHOULD come up on login: a bookmark that
+       only works after someone remembers to start a server is not a working bookmark. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart if it ever exits. This is a long-lived listener, so any exit is a fault.
+       ThrottleInterval stops a crash-on-startup (e.g. port already taken) from
+       spinning; 10s is long enough to be harmless and short enough to self-heal. -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>__INSTALL_DIR__/logs/serve.out</string>
+  <key>StandardErrorPath</key>
+  <string>__INSTALL_DIR__/logs/serve.err</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+</dict>
+</plist>
